@@ -2,8 +2,7 @@
 
 **Causal service-preserving strategic opacity for federated peer-to-peer emergency energy sharing in networked microgrids.**
 
-FedSCOPE is the implementation accompanying the corresponding research study.  
-The repository contains the experiment pipeline, configuration files, analysis utilities, automated tests, and execution scripts required to reproduce the computational experiments.
+The repository contains the experiment pipeline, configuration files, analysis utilities, automated tests, and execution scripts required to reproduce the FedSCOPE experiments.
 
 ## Repository structure
 
