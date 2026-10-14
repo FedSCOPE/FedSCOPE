@@ -4,8 +4,6 @@
 
 This repository contains the implementation used for the FedSCOPE experiments. It provides the source package, experiment configuration, execution scripts, analysis utilities, tests, and supporting documentation required to reproduce the computational results reported in the accompanying manuscript.
 
-Methodological details are kept in `docs/`; this README focuses on using and navigating the codebase.
-
 ## Repository structure
 
 ```text
