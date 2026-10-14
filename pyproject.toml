@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fedscope-energy"
+version = "2.1.1"
+description = "Causal empirical-Bayes federated forecasting and strategic opacity under genuine emergency energy competition"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+  "numpy>=2.0",
+  "pandas>=2.2",
+  "scipy>=1.13",
+  "scikit-learn>=1.5",
+  "matplotlib>=3.9",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11"]
+
+[project.scripts]
+fedscope-download = "fedscope.data.download:main"
+fedscope-run = "fedscope.pipeline:main"
+fedscope-suite = "fedscope.suite:main"
+fedscope-audit = "fedscope.audit_run:main"
+fedscope-publication-audit = "fedscope.publication_audit:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

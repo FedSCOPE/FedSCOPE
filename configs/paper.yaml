@@ -1,0 +1,42 @@
+data:
+  household_csv: data/raw/household_data_15min_singleindex.csv
+  price_csv: data/raw/time_series_60min_singleindex.csv
+  strict_non_interpolated: true
+  timezone: Europe/Berlin
+
+forecast:
+  # Physically motivated lags on a 15-minute grid: 15 min, 1 h, 1 day, 1 week.
+  lags_steps: [1, 4, 96, 672]
+  max_horizon_steps: 96
+  report_horizons_steps: [1, 4, 24, 48, 96]
+  # Operational confidence target, not a fitted hyperparameter. 90/99% are in the suite.
+  control_coverage: 0.95
+
+protocol:
+  episode_steps: 96
+  control_horizon_steps: 96
+  # Models are refit only at the beginning of each non-overlapping 24-h episode.
+  # Evaluation starts automatically at the first episode for which the focal
+  # local design is identifiable; no fixed train/test fraction is used.
+  expanding_backtest: true
+
+scenario:
+  focal_client: DE_KN_industrial3
+  essential_feeds:
+    - cooling_aggregate
+    - cooling_pumps
+    - ventilation
+    - refrigerator
+    - freezer
+    - circulation_pump
+  peer_clients:
+    - DE_KN_industrial1
+    - DE_KN_industrial2
+    - DE_KN_residential1
+    - DE_KN_residential3
+    - DE_KN_residential4
+    - DE_KN_residential6
+  allocation_rule: weighted_proportional_fairness
+
+output:
+  directory: results_final

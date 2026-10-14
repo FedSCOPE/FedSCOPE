@@ -1,0 +1,38 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build
+build/
+dist/
+
+# Local data
+data/
+
+# Generated experiment outputs
+results_final/
+experiments/
+evaluation/
+figures/
+
+# Legacy/generated result directories
+paper_suite_final/
+publication_audits/
+publication_figures/
+
+# Archives
+*.zip
+*.rar
+*.7z
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
