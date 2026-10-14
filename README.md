@@ -2,28 +2,61 @@
 
 **Causal service-preserving strategic opacity for federated peer-to-peer emergency energy sharing in networked microgrids.**
 
-FedSCOPE studies a specific information-exposure problem in networked microgrids. During scarcity, a participant may need to publish a priority signal to obtain peer energy, but the sequence of published priorities can also reveal how vulnerable that participant expects to become. FedSCOPE combines causal federated state estimation, a proportional-fair scarcity allocation model, and an executed-history signaling policy that reduces statistical dependence between the released priority sequence and the participant's anticipated energy distress while preserving the focal allocation.
+FedSCOPE is a research codebase for studying public-signal information exposure during scarce peer-to-peer energy sharing. The framework combines chronological federated state estimation, weighted proportional-fair allocation, and a service-preserving signaling policy that reduces statistical dependence between a released priority sequence and a participant's anticipated energy-distress state.
 
-The implementation is designed for chronological, reproducible evaluation on measured OPSD CoSSMic data. Raw client time-series rows remain local to the federated estimation layer; only sufficient statistics are exchanged.
+The implementation accompanies the FedSCOPE manuscript and is intended to support end-to-end reproduction of the reported experiments on OPSD CoSSMic data.
 
----
+## Overview
 
-## Repository structure
+During a scarcity event, several participants may compete for a limited amount of transferable peer energy. Priority signals are operationally useful because they determine allocation, but their temporal pattern may also reveal private information about a participant's expected energy condition.
+
+FedSCOPE addresses this disclosure channel without reducing the focal participant's allocation. At each game-active state, the method:
+
+1. estimates the focal participant's future energy condition from a causal federated model;
+2. computes an integrated anticipated-distress state over the forecast horizon;
+3. identifies the minimum priority that preserves the focal allocation obtained under full priority;
+4. restricts the signaling decision to service-equivalent current actions; and
+5. selects the action that reduces dependence between the **executed** priority history and the corresponding anticipated-distress history.
+
+The controller operates only on information available at the time of execution. Future realized energy states are used only for ex-post evaluation.
+
+## Main components
+
+- **Chronological expanding-window evaluation**  
+  Forecast models are fitted using only observations available before each evaluation episode.
+
+- **Genuine scarcity detection**  
+  Signaling is evaluated only when peer supply is positive, at least two claimants have positive deficits, and total demand exceeds available supply.
+
+- **Weighted proportional-fair allocation**  
+  Priority signals determine allocation under explicit supply and deficit constraints.
+
+- **Federated empirical-Bayes forecasting**  
+  Client-specific models exchange sufficient statistics rather than raw time-series rows. Cross-client shrinkage is controlled by REML-estimated between-client variance.
+
+- **Integrated anticipated distress**  
+  Private state is defined as the forecast fraction of essential energy expected to remain locally uncovered over the anticipation horizon.
+
+- **Exact service floor**  
+  The minimum focal priority preserving the full-priority allocation is computed at every game-active state.
+
+- **Executed-history opacity control**  
+  The signaling policy acts on the public sequence that has actually been released, rather than on a future action plan that may later be revised.
+
+- **Independent dependence audits**  
+  Final signal sequences are evaluated with Pearson correlation, Spearman correlation, distance correlation, normalized HSIC, and kNN mutual information.
+
+## Repository layout
 
 ```text
 FedSCOPE/
-├── .github/          # CI workflow
-├── analysis/         # post-processing and figure-generation code
-├── configs/          # experiment configuration
-├── data/             # downloaded input data; raw files are not committed
-├── docs/             # method and experiment documentation
-├── evaluation/       # post-hoc publication-facing audits
-├── experiments/      # sensitivity and focal-rotation runs
-├── figures/          # generated publication figures
-├── results_final/    # primary experiment outputs
-├── scripts/          # reproducibility entry points
-├── src/              # FedSCOPE package
-├── tests/            # unit and scientific-invariant tests
+├── .github/          GitHub Actions workflow
+├── analysis/         Post-processing and publication analysis
+├── configs/          Experiment configuration
+├── docs/             Method and experiment documentation
+├── scripts/          Reproducibility entry points
+├── src/              FedSCOPE Python package
+├── tests/            Unit and scientific-invariant tests
 ├── .gitignore
 ├── LICENSE
 ├── pyproject.toml
@@ -31,59 +64,79 @@ FedSCOPE/
 └── requirements-lock.txt
 ```
 
-Generated outputs are intentionally separated from source code. For a public repository, large raw data files and transient environments such as `.venv/` and `.pytest_cache/` should remain untracked.
+Raw data, virtual environments, cached files, and generated experiment outputs are intentionally not tracked by Git.
 
----
+## Requirements
 
-## Scientific scope
+- Windows 10 or 11
+- 64-bit Python 3.11
+- PowerShell
+- Internet access for the first OPSD data download
+- Sufficient local disk space and memory for the full expanding-window sensitivity suite
 
-### Measured inputs
+The repository uses a dependency lock file for reproducible reruns.
 
-Experiments use the Open Power System Data (OPSD) CoSSMic household-data package. Cumulative meters are converted to 15-minute interval energies by endpoint differencing. The primary analysis excludes source-marked interpolated endpoints and non-consecutive meter intervals.
+## Reproduce the full study
 
-### Counterfactual emergency-sharing layer
+Clone the repository and enter the project directory:
 
-The underlying load, photovoltaic, storage, and device-level measurements are real. The emergency peer-sharing market is counterfactual: CoSSMic does not label the evaluated periods as historical multi-microgrid islanding events or peer-energy trades.
+```powershell
+git clone https://github.com/FedSCOPE/FedSCOPE.git
+cd FedSCOPE
+```
 
-### Essential-load terminology
+Run the complete experiment suite:
 
-Configured device-level channels are treated as **measured essential-load proxies**. They are not assumed to be certified safety-critical loads.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\RUN_COMPLETE.ps1
+```
 
----
+This is the recommended end-to-end reproduction command. It:
 
-## Method overview
+1. creates a local Python environment;
+2. installs the locked dependencies and the package;
+3. runs the test suite;
+4. downloads and verifies the OPSD source data;
+5. executes the primary expanding-window experiment;
+6. runs the scientific consistency checks;
+7. evaluates the prespecified sensitivity experiments;
+8. computes the post-hoc dependence and federated diagnostics; and
+9. regenerates the result figures from the stored outputs.
 
-FedSCOPE is evaluated through the following sequence.
+The full run is computationally expensive because the forecasting models are repeatedly refitted over an expanding chronological history and the sensitivity experiments are evaluated independently.
 
-1. **Chronological expanding backtest**  
-   Every complete 24-hour focal segment is evaluated once. Forecast models use only information available before the corresponding episode.
+## Partial runs
 
-2. **Genuine scarcity detection**  
-   Priority signaling is evaluated only when transferable peer supply is positive, at least two measured-proxy claimants have positive deficits, and available supply is insufficient to satisfy their aggregate deficit.
+### Primary experiment
 
-3. **Weighted proportional-fair allocation**  
-   Energy allocation solves a weighted proportional-fair resource-allocation problem under supply and deficit constraints. A zero priority is an actual opt-out.
+For a faster check of the main experiment:
 
-4. **Federated empirical-Bayes state estimation**  
-   Client intercepts remain local. Autoregressive lag coefficients are partially pooled through a Gaussian random-effects model, with between-client variance estimated by REML. The server receives sufficient statistics rather than raw time-series rows.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PRIMARY.ps1
+```
 
-5. **Integrated anticipated distress**  
-   The focal private state is the forecast fraction of essential energy expected to remain locally uncovered over the anticipation horizon.
+### Sensitivity experiments
 
-6. **Exact service floor**  
-   At each game-active state, FedSCOPE computes the minimum focal priority that yields the same focal allocation as full priority.
+After the primary environment and source data are available:
 
-7. **Executed-history opacity control**  
-   The controller compares the service-floor action with a truth-bounded upper action and selects the one that gives lower cumulative distance correlation between the **released** priority sequence and the common causal anticipated-distress sequence.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PAPER_SUITE.ps1
+```
 
-8. **Independent audits**  
-   Final signal sequences are evaluated using Pearson and Spearman correlation, distance correlation, normalized HSIC, and kNN mutual information. HSIC and mutual information are not used by the controller.
+### Post-hoc analysis
 
-No random chronological split, client sampling, episode selection, optimizer initialization, or random hyperparameter search is used in the primary experiment.
+After a completed experiment run, the dependence audits and result figures can be regenerated without retraining the forecasting models:
 
----
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PUBLICATION_AUDITS.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PUBLICATION_FIGURES.ps1
+```
 
-## Data integrity
+## Data
+
+Experiments use the **CoSSMic household-data package** distributed by Open Power System Data (OPSD).
+
+The pipeline converts cumulative meter readings to 15-minute interval energies by endpoint differencing. The primary analysis excludes source-marked interpolated endpoints, non-consecutive meter intervals, and invalid cumulative increments.
 
 The downloader verifies the exact source files used in the study:
 
@@ -95,196 +148,82 @@ time_series_60min_singleindex.csv
 SHA-256: 56b96e807e8e4e5b86d8ebe8097c1f9a21c289b145df5bd8bddc655f568a8257
 ```
 
-A file with the expected name but a different hash aborts the run rather than silently changing the experiment.
+A file with the expected name but a different hash causes the run to stop instead of silently changing the experiment.
 
----
+## Reproducibility design
 
-# Reproducing the experiments on Windows
+The primary pipeline is deterministic with respect to the input data and configuration:
 
-## Requirements
+- no random chronological split;
+- no random episode selection;
+- no random client sampling;
+- no random optimizer initialization;
+- no outcome-driven hyperparameter search.
 
-- Windows 10 or 11
-- 64-bit Python 3.11
-- internet access for the first data download
-- enough disk space and memory for the expanding-window sensitivity suite
+All signaling policies are evaluated at the same game-active timestamps and against the same anticipated-distress sequence.
 
-Extract the repository, for example to:
+The code also checks structural invariants including service preservation, federated raw-row boundaries, valid game-active states, and non-degenerate distress targets.
 
-```text
-D:\Projects\FedSCOPE
-```
+## Reported reference experiment
 
-Open PowerShell and run:
+The primary experiment reported in the accompanying manuscript contains:
 
-```powershell
-cd D:\Projects\FedSCOPE
-powershell -ExecutionPolicy Bypass -File .\scripts\RUN_COMPLETE.ps1
-```
+- 451 complete 24-hour episodes;
+- 1,639 genuine game-active 15-minute states;
+- identical focal service under minimum-service signaling and FedSCOPE;
+- anticipated-state distance correlation reduced from `0.107813` to `0.047258` (56.2%);
+- independent reductions in normalized HSIC and kNN mutual-information estimates.
 
-This is the recommended end-to-end reproduction command. The execution procedure itself is unchanged: the script prepares the environment, installs the locked dependencies, verifies the source data, runs the primary experiment, executes the prespecified sensitivity suite, computes the publication-facing audits, and generates the result figures.
-
-The full run is computationally expensive because forecasting models are refitted chronologically over an expanding history and the complete sensitivity suite is evaluated.
-
----
-
-## Primary experiment only
-
-For a faster check of the main experiment:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PRIMARY.ps1
-```
-
-Primary outputs are written to:
-
-```text
-results_final/
-```
-
-The main files include:
-
-```text
-results_final/
-├── data_audit.csv
-├── episodes.csv
-├── game_activity.csv
-├── federated_protocol.csv
-├── eb_sharing.csv
-├── forecast_metrics.csv
-├── forecast_effects_hac.csv
-├── policy_step_results.csv
-├── episode_metrics.csv
-├── leakage_global.csv
-├── attacker_prequential.csv
-├── policy_effects.csv
-├── primary_summary.csv
-└── run_manifest.json
-```
-
----
-
-## Sensitivity experiments
-
-After the primary environment and data are available:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PAPER_SUITE.ps1
-```
-
-Sensitivity experiments cover the anticipation horizons, reporting levels, interpolation treatment, and focal-client rotations used in the study. Their archived outputs are organized under:
-
-```text
-experiments/
-```
-
----
-
-## Evaluation and figure generation
-
-The publication-facing post-hoc analyses can be reproduced without retraining the forecasting models:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PUBLICATION_AUDITS.ps1
-powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PUBLICATION_FIGURES.ps1
-```
-
-The resulting analyses and plots are organized under:
-
-```text
-evaluation/
-figures/
-```
-
-The evaluation layer includes:
-
-- normalized HSIC with deterministic median-heuristic RBF kernels;
-- kNN mutual-information estimates for `k = 3, 5, 10, 20`;
-- focal service-preserving signaling headroom;
-- client-horizon federated win counts;
-- REML between-client heterogeneity summaries;
-- sufficient-statistic payload diagnostics.
-
-These analyses are post-hoc and do not alter the controller outputs.
-
----
-
-## Main empirical result
-
-In the primary experiment, the expanding backtest contains:
-
-- **451** complete 24-hour episodes;
-- **1,639** genuine game-active 15-minute states.
-
-Minimum-service signaling and FedSCOPE produce the same focal allocation:
-
-```text
-served energy: 14.149587 kWh
-```
-
-For the common anticipated-distress target, distance correlation changes from:
-
-```text
-0.107813  ->  0.047258
-```
-
-corresponding to a **56.2% reduction** with no focal service loss.
-
-The same policy is also evaluated with dependence measures that are not part of the controller objective, including normalized HSIC and kNN mutual information. Horizon and focal-client sensitivity analyses are reported separately because the achievable opacity reduction is not uniform across clients.
-
----
+These values describe the primary focal participant. Focal-rotation experiments show that the available opacity reduction is client-dependent because the width of the service-preserving signaling region varies across participants.
 
 ## Tests
 
-After installation, tests can be run directly with:
+After installation, the test suite can be run with:
 
 ```powershell
 & .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-The test suite covers interval construction, proportional-fair allocation, integrated distress, empirical-Bayes estimation, federated protocol boundaries, dependence metrics, and executed-history opacity.
+Tests cover:
 
----
+- interval construction and data preprocessing;
+- proportional-fair allocation;
+- service-floor computation;
+- integrated distress;
+- empirical-Bayes estimation;
+- federated protocol boundaries;
+- dependence metrics; and
+- executed-history opacity.
 
-## Interpretation and limitations
+## Scientific scope
 
-The implementation supports empirical claims about **service-preserving reduction of measured statistical dependence** between a public priority signal and a causal anticipated-distress state under the stated allocation mechanism.
+FedSCOPE supports empirical study of **service-preserving reduction of measured statistical dependence** between a public priority signal and a causal anticipated-distress state under the stated allocation model.
 
-It does **not** establish:
+The current implementation does not claim:
 
 - differential privacy;
 - cryptographic secrecy;
 - information-theoretic independence;
 - physical power-flow feasibility for a distribution network not represented in CoSSMic;
 - certified critical-load operation;
-- universal benefit for every focal client;
-- observed historical emergency-market outcomes.
+- universal improvement for every focal participant; or
+- reconstruction of historical emergency-market events.
 
-The federated sufficient-statistic protocol also does not by itself constitute a formal privacy mechanism.
-
----
+The emergency peer-sharing setting is counterfactual: the underlying load, photovoltaic, storage, and device-level measurements are real, but CoSSMic does not label the evaluated intervals as historical multi-microgrid islanding events.
 
 ## Documentation
 
-Additional details are available in:
+Additional implementation and experiment details are available in `docs/`:
 
-```text
-docs/
-├── METHOD.md
-├── EXPERIMENT_PROTOCOL.md
-├── PUBLICATION_ANALYSIS.md
-├── SCIENTIFIC_SCOPE.md
-└── REFERENCES.md
-```
-
-`METHOD.md` describes the mathematical formulation and implementation. `EXPERIMENT_PROTOCOL.md` records the chronological evaluation design. `PUBLICATION_ANALYSIS.md` documents the result-facing audits, and `SCIENTIFIC_SCOPE.md` defines the intended claims and non-claims.
-
----
+- `METHOD.md` — mathematical formulation and algorithmic details
+- `EXPERIMENT_PROTOCOL.md` — chronological evaluation protocol
+- `PUBLICATION_ANALYSIS.md` — post-hoc dependence and robustness analyses
+- `SCIENTIFIC_SCOPE.md` — intended claims and limitations
+- `REFERENCES.md` — references used by the accompanying study
 
 ## Citation
 
-Please cite the accompanying FedSCOPE manuscript for the method and OPSD/CoSSMic separately for the data source. Full references are listed in `docs/REFERENCES.md`.
-
----
+If you use this repository, please cite the accompanying FedSCOPE manuscript and the OPSD/CoSSMic data source. Full bibliographic information is provided in `docs/REFERENCES.md`.
 
 ## License
 
