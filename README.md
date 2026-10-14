@@ -1,22 +1,21 @@
 # FedSCOPE
 
-**Causal service-preserving strategic opacity for federated peer-to-peer emergency energy sharing in networked microgrids.**
+This repository contains the implementation of the paper:
 
-FedSCOPE is the codebase used for the experiments in the accompanying study. It includes the forecasting, allocation, signaling, evaluation, and analysis pipeline, together with the scripts and tests needed to run the experiments from start to finish.
+**“Causal Service-Preserving Strategic Opacity for Federated Peer-to-Peer Emergency Energy Sharing in Networked Microgrids.”**
 
-The main experiment can be reproduced with a single command, while each stage can also be run separately.
+It includes the code used to run the main experiments, sensitivity analyses, evaluation procedures, and figures reported in the study.
 
 ## Repository structure
 
 ```text
 FedSCOPE/
-├── .github/          GitHub Actions workflow
-├── analysis/         Analysis and figure-generation code
+├── .github/          GitHub Actions
+├── analysis/         Analysis and figure generation
 ├── configs/          Experiment configuration
-├── scripts/          Run scripts
-├── src/              Main Python package
-├── tests/            Automated tests
-├── .gitignore
+├── scripts/          Experiment run scripts
+├── src/              FedSCOPE implementation
+├── tests/            Tests
 ├── LICENSE
 ├── pyproject.toml
 ├── README.md
@@ -25,14 +24,13 @@ FedSCOPE/
 
 ## Requirements
 
-- Windows 10 or 11
-- Python 3.11 (64-bit)
+- Python 3.11
+- Windows 10/11
 - PowerShell
-- Internet access for the initial data download
 
-Python dependencies are pinned in `requirements-lock.txt`.
+Dependencies are listed in `requirements-lock.txt`.
 
-## Quick start
+## Run the full experiment
 
 Clone the repository:
 
@@ -41,120 +39,66 @@ git clone https://github.com/FedSCOPE/FedSCOPE.git
 cd FedSCOPE
 ```
 
-Run the full pipeline:
+Run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\RUN_COMPLETE.ps1
 ```
 
-This command prepares the Python environment, installs the required packages, runs the tests, prepares the data, executes the experiments, runs the analysis, and generates the figures.
+This runs the full experimental pipeline, including data preparation, the main experiment, sensitivity analyses, evaluation, and figure generation.
 
-The full run can take some time because the forecasting models are refitted over expanding chronological training windows.
+## Run individual stages
 
-## Run scripts
-
-The main scripts are available in `scripts/`.
-
-### Full pipeline
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\RUN_COMPLETE.ps1
-```
-
-Runs the complete workflow.
-
-### Primary experiment
+Main experiment:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PRIMARY.ps1
 ```
 
-Runs the main FedSCOPE experiment.
-
-### Experiment suite
+Sensitivity experiments:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PAPER_SUITE.ps1
 ```
 
-Runs the additional experiment settings used in the study.
-
-### Analysis
+Evaluation:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PUBLICATION_AUDITS.ps1
 ```
 
-Runs the post-processing and evaluation steps on completed experiment results.
-
-### Figures
+Figures:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\RUN_PUBLICATION_FIGURES.ps1
 ```
 
-Generates the figures from the experiment outputs.
-
 ## Configuration
 
-Experiment settings are stored in `configs/`.
-
-The main configuration is:
+The main experiment configuration is:
 
 ```text
 configs/paper.yaml
 ```
 
-This file contains the settings used by the main experiment and can be edited without changing the core source code.
-
-## Source code
-
-The main implementation is in:
-
-```text
-src/fedscope/
-```
-
-The package contains the code for:
-
-- data preparation;
-- forecasting;
-- federated estimation;
-- scarcity and allocation;
-- signaling;
-- dependence and performance evaluation;
-- experiment execution.
-
-The PowerShell scripts in `scripts/` provide the main entry points for running these components.
-
-## Analysis
-
-The `analysis/` folder contains the code used to process experiment outputs, compute summary metrics, run additional evaluations, and generate figures.
-
 ## Data
 
-The experiments use the CoSSMic dataset from Open Power System Data (OPSD).
+The experiments use the **CoSSMic dataset** from Open Power System Data (OPSD).
 
-The required data are downloaded and prepared by the pipeline during setup, so no manual data download is needed before the first run.
+The required data are downloaded and prepared automatically by the pipeline.
 
 ## Tests
 
-After the environment has been created, run:
+Run the test suite with:
 
 ```powershell
 & .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-The tests cover the main parts of the pipeline, including data processing, forecasting, allocation, federated estimation, signaling, evaluation, and experiment checks.
-
-## Continuous integration
-
-The GitHub Actions workflow is stored in `.github/` and runs the automated tests for repository updates.
-
 ## Citation
 
-If you use this code in academic work, please cite the FedSCOPE study and the OPSD CoSSMic data source.
+If you use this repository, please cite the FedSCOPE paper and the OPSD CoSSMic dataset.
 
 ## License
 
-MIT License. See `LICENSE`.
+MIT License.
